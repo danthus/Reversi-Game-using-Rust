@@ -1,4 +1,5 @@
 use std::io;
+use std::io::Write;
 use std::process;
 
 // initial board configutation
@@ -163,17 +164,39 @@ fn count_pieces(board: &[[i32; 8]; 8]) -> (isize, isize) {
 }
 
 fn main() {
-    let mut player_str: &str = "B"; // "B" for black, "W" for white, start with "B"
-    let mut player_int = 0; // 0 for black, 1 for white
+    let mut player_str: &str = "W"; // "B" for black, "W" for white, start with "B"
+    let mut player_int = 1; // 0 for black, 1 for white
 
     // -1 for empty, 1 for white, 0 for black, start with all -1
     let mut board: [[i32; 8]; 8] = [[-1; 8]; 8];
     init_board(&mut board);
-    print_board(&board);
-    print!("Enter move for colour {} (RowCol): ", player_str);
 
     // main game lopp starts
     loop {
+        print_board(&board);
+
+        player_str = if player_str == "B" {"W"} else {"B"};
+        player_int = if player_int == 0 {1} else {0};
+
+        if !check_valid_moves(player_int, &board) {
+            // if no valid move, switch back to previous player
+            println!("{} player has no valid move.", player_str);
+            // flag = false;
+            player_str = if player_str == "B" {"W"} else {"B"};
+            player_int = if player_int == 0 {1} else {0};
+
+            // check previous player has valid moves or not
+            if !check_valid_moves(player_int, &board) {
+                // if both players have no valid moves, finish the game
+                println!("{} player has no valid move.", player_str);
+                check_win(&board);
+                process::exit(0);
+            }
+        }
+
+        print!("Enter move for colour {} (RowCol): ", player_str);
+        io::stdout().flush().expect("Failed to flush stdout.");
+
         let mut input = String::new();
 
         io::stdin()
@@ -189,6 +212,8 @@ fn main() {
 
         if input.len() != 2 {
             println!("Invalid input. Try again.");
+            player_str = if player_str == "B" {"W"} else {"B"};
+            player_int = if player_int == 0 {1} else {0};
             continue;
         }
 
@@ -197,45 +222,21 @@ fn main() {
 
         if row > 7 || col > 7 {
             println!("Invalid input. Try again.");
-            print_board(&board);
-            print!("Enter move for colour {} (RowCol): ", player_str);
+            player_str = if player_str == "B" {"W"} else {"B"};
+            player_int = if player_int == 0 {1} else {0};
             continue;
         }
 
         // check the placing is valid or not
         if !check_placing(row, col, player_int, &board) { 
             println!("Invalid move. Try again.");
-            print_board(&board);
-            print!("Enter move for colour {} (RowCol): ", player_str);
+            player_str = if player_str == "B" {"W"} else {"B"};
+            player_int = if player_int == 0 {1} else {0};
             continue;
         }
 
         // valid placing
         place_piece(row, col, player_int, &mut board);
-
-        player_str = if player_str == "B" {"W"} else {"B"};
-        player_int = if player_int == 0 {1} else {0};
-
-        print_board(&board);
-
-        // check if next player has valid moves or not
-        if !check_valid_moves(player_int, &board) {
-            // if no valid move, switch back to previous player
-            println!("{} player has no valid move.", player_str);
-            player_str = if player_str == "B" {"W"} else {"B"};
-            player_int = if player_int == 0 {1} else {0};
-            
-            // check previous player has valid moves or not
-            if !check_valid_moves(player_int, &board) {
-                // if both players have no valid moves, finish the game
-                println!("{} player has no valid move.", player_str);
-                check_win(&board);
-                process::exit(0);
-            }
-        }
-
-        print!("Enter move for colour {} (RowCol): ", player_str);
-
     }
 
 }
